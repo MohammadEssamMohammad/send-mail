@@ -1,45 +1,37 @@
-import { Resend } from "resend";
+const nodemailer = require('nodemailer');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" });
+module.exports = async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  const { to, subject, html } = req.body;
+
+  if (!to || !subject || !html) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const isBulk = Array.isArray(to) && to.length > 1;
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
 
   try {
-    const body =
-      typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-
-    const { email } = body;
-
-    if (!email) {
-      return res.status(400).json({ message: "Email is required" });
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ message: "Invalid email address" });
-    }
-
-    const { data, error } = await resend.emails.send({
-      from: "onboarding@resend.dev", // replace with your verified domain in production
-      to: email,
-      subject: "Welcome 🎉",
-      html: `
-        <h2>Welcome 🎉</h2>
-        <p>Thanks for registering!</p>
-        <p>Glad to have you onboard 🚀</p>
-      `,
+    await transporter.sendMail({
+      from: `"${process.env.SENDER_NAME}" <${process.env.GMAIL_USER}>`,
+      to: isBulk ? 'undisclosed-recipients:;' : to,
+      bcc: isBulk ? to.join(', ') : undefined,
+      subject,
+      html,
     });
 
-    if (error) {
-      console.error("Resend error:", error);
-      return res.status(500).json({ message: "Failed to send email", error });
-    }
-
-    return res.status(200).json({ message: "Email sent successfully", data });
-  } catch (error) {
-    console.error("Error:", error);
-    return res.status(500).json({ message: "Error sending email", error: error.message });
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
-}
+};

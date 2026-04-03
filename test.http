@@ -1,6 +1,30 @@
+
+POST http://localhost:3000/api/send-mail
+Content-Type: application/json
+
+{
+  "from": "Compsci Talks"
+  "to": "ongoingprodigy@gmail.com",
+  "subject": "Test Email",
+  "html": "<h>This is a test email from my local server!</h1>"
+}
+
 POST http://localhost:3000/api/send-email
 Content-Type: application/json
 
 {
   "email": "ongoingprodigy@gmail.com"
 }
+
+POST https://send-mail-gamma.vercel.app/api/send-mail
+Content-Type: application/json
+
+{
+  "email": "ongoingprodigy@gmail.com"
+}
+
+curl -X POST https://send-mail-gamma.vercel.app/api/send-mail \
+  -H "Content-Type: application/json" \
+  -d '{"email": "ongoingprodigy@gmail.com"}'
+
+
